@@ -4,10 +4,10 @@ The purpose of this project is to develop a nonlinear model predictive controlle
 ---
 
 ![mpc1](https://user-images.githubusercontent.com/17127066/27439585-ebb74b46-5785-11e7-9ed2-29d1de8227b7.png)
-Source: http://cdn.iopscience.com/images/0964-1726/21/5/055018/Full/sms399992f2_online.jpg
+Source: [iopscience](http://cdn.iopscience.com/images/0964-1726/21/5/055018/Full/sms399992f2_online.jpg)
 
 ![mpc2](https://user-images.githubusercontent.com/17127066/27439584-eb9cc7bc-5785-11e7-88da-2aad8e1eb509.png)
-Source: https://en.wikipedia.org/wiki/Model_predictive_control
+Source: [wikipedia](https://en.wikipedia.org/wiki/Model_predictive_control)
 
 Model process controllers primarily solves an optimization problem and mainly has three parts 
 
@@ -46,7 +46,7 @@ This ensures that the dynamics of the system are satisfied between the two time-
       cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt)) = 0
       epsi1 - ((psi0 - psides0) + v0 * delta0 * dt / Lf) = 0
 
-There are other constraints that are inequality constraints and also a special form of inequality constraint -- bounds. These are used to limit the range of values that the optimizer can search (by varying the design variables) to find the optimum.
+There are other constraints that are inequality constraints and also a special form of inequality constraint -- bounds. These are used to limit the range of values that the optimizer can search (by varying the design variables) to find the optimum. Refer [discussion forum](https://discussions.udacity.com/t/model-constraints-vs-state-update-equations/250569) for details.
 
 ---
 
@@ -55,7 +55,7 @@ There are other constraints that are inequality constraints and also a special f
 The PID approach would be analogous to a driver negotiating the road by continuously adjusting the input parameters (steering and throttle), correcting deviation from the reference trajectory, proceeding along as the new corners or obstacles appear in front. 
 The MPC strategy would be analogous to studying the whole road, selecting the driving strategy before the departure and re-assessing/selecting the driving strategy at every time-step. Note that even the MPC approach does not guarantee 100% success as the strategy might have to be adjusted to changing conditions like rain, other road users, and so on.
 
-Source: https://openi.nlm.nih.gov/detailedresult.php?img=PMC2784347_cc8023-1&req=4
+Source: [openi.nlm.nih.gov](https://openi.nlm.nih.gov/detailedresult.php?img=PMC2784347_cc8023-1&req=4)
 
 ---
 
