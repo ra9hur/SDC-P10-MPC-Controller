@@ -1,5 +1,89 @@
-# CarND-Controls-MPC
-Self-Driving Car Engineer Nanodegree Program
+## Project Description
+The purpose of this project is to develop a nonlinear model predictive controller (NMPC) to steer a car around a track in a simulator. This project has already been implemented using Behavioural Cloning in Term 1 and PID controller in Term 2.
+
+---
+
+![mpc1](https://user-images.githubusercontent.com/17127066/27439585-ebb74b46-5785-11e7-9ed2-29d1de8227b7.png)
+Source: http://cdn.iopscience.com/images/0964-1726/21/5/055018/Full/sms399992f2_online.jpg
+
+![mpc2](https://user-images.githubusercontent.com/17127066/27439584-eb9cc7bc-5785-11e7-88da-2aad8e1eb509.png)
+Source: https://en.wikipedia.org/wiki/Model_predictive_control
+
+Model process controllers primarily solves an optimization problem and mainly has three parts 
+
+- cost/objective function
+- design variables
+- constraints (inequality and equality).
+
+A few possible objectives that could be defined are:
+
+- Minimize the difference between model predicted values and the reference trajectory
+- Minimize the difference actual velocity and reference velocity
+- Minimize change in steering angle/throttle between time-steps for smooth driving
+
+The IPOPT optimizer used in this project tries to find the minimum of the objective function by varying the values of the design variables while making sure all the constraints are satisfied. 
+
+Design variables are the vehicle states [x, y, psi, v, cte, epsi] and control variables [steering angle delta, throttle a] at every time step until the prediction horizon. There are [x0, y0 , psi0, v0, cte0, epsi0] at t=0, [x1, y1, psi1, v1, cte1, epsi1] at t=0.1 and so on till the prediction horizon. If N=20 is the number of time-steps in the prediction horizon, the total number of variables would be,
+
+     N * 6 + (N-1) * 2 = 20 * 6 + (20-1) * 2 = 158 variables.
+
+The optimizer does not know about the restrictions on these variables. A few of those restrictions are:
+
+- Easiest way to minimize the cross-track error is for the vehicle to "teleport" from it's starting position to be directly on the track and just stay there. The optimizer doesn't know that the car cannot teleport from the current position to the target or that it's velocity cannot instantaneously increase to the desired value.
+- Car cannot take arbitrary path. It has to move on the left/right side of the road depending on country rules.
+- Run the engine such that emissions are within limits. Fuel/air ratio has to be carefully maintained.
+- To minimize distance, it cannot be crossing streets while calculating euclidian distance. It might have to calculate manhatten distance instead to minimize.
+
+The only way to instruct optimizer on these restrictions is through constraints. IPOPT accepts constraints in a certain format. In case of equality constraints it expects functions that evaluate to zero when the constraint is satisfied. So the expression below is constraining the variables x1, x0, v0 and psi0 such that:
+
+      x1 - (x0 + v0 * CppAD::cos(psi0) * dt) = 0
+
+This ensures that the dynamics of the system are satisfied between the two time-steps for the state 'x'. Similarly, constraints to enforce the kinematics of every state at every time-step are added using vehicle model equations.
+      
+      y1 - (y0 + v0 * CppAD::sin(psi0) * dt) = 0
+      psi1 - (psi0 - (v0/Lf * delta0 * dt)) = 0
+      v1 - (v0 + a0 * dt) = 0
+      cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt)) = 0
+      epsi1 - ((psi0 - psides0) + v0 * delta0 * dt / Lf) = 0
+
+There are other constraints that are inequality constraints and also a special form of inequality constraint -- bounds. These are used to limit the range of values that the optimizer can search (by varying the design variables) to find the optimum.
+
+---
+
+### PID Vs MPC
+
+The PID approach would be analogous to a driver negotiating the road by continuously adjusting the input parameters (steering and throttle), correcting deviation from the reference trajectory, proceeding along as the new corners or obstacles appear in front. 
+The MPC strategy would be analogous to studying the whole road, selecting the driving strategy before the departure and re-assessing/selecting the driving strategy at every time-step. Note that even the MPC approach does not guarantee 100% success as the strategy might have to be adjusted to changing conditions like rain, other road users, and so on.
+
+Source: https://openi.nlm.nih.gov/detailedresult.php?img=PMC2784347_cc8023-1&req=4
+
+---
+
+## Implementation
+
+### Way-points transformation
+The simulator provides a feed of values (in car coordinate system) containing the position of the car, its speed and heading direction. Additionally it provides waypoints (in map or global coordinate system) along a reference trajectory that the car is to follow. 
+The coordinates of waypoints in vehicle coordinates are obtained by first shifting the origin to the current position of the vehicle and then, a 2D rotation to align with x-axis as the heading direction. This transformation results in vehicle's co-ordinates and yaw angle as zero. Thus, state of the car in the vehicle cordinate system is, state = [0, 0, 0, v, cte, epsi]
+
+### Latency
+There will be a delay as actuator command propagates through the car system. Realistic delay might be on the order of 100 milliseconds.
+This problem is solved by running a simulation using the vehicle model starting from the current state for the duration of the latency (100 milliseconds). Resulting state from the simulation is the new initial state for MPC. Thus optimal trajectory is computed starting from the time after the latency period. Advantage is that the dynamics during the latency period is still calculated according to the vehicle model.
+
+### Prediction Horizon
+Optimization problem is formulated over a finite window of time starting from the current instant. Horizon keeps moving at every time-step. [t, t + T] to [t + dt, t + T + dt]
+If N is the number of time-steps, dt is the duration of each time-step, prediction horizon is calculated as N * dt.
+Short prediction horizons lead to more responsive controlers, but are less accurate and can suffer from instabilities when chosen too short. Long prediction horizons generally lead to smoother controls.
+After a few trials, chose N = 20 and dt = 0.2
+
+### Adjust weights on cost terms
+Higher weights are added to cross-track error and orientation error to prioritize these cost terms.
+
+During trials, Cost terms for absolute actuator values had minimal effect and car still manages to run fine high speeds. Hence, these terms are commented out.
+
+### Velocity unit conversion from mph to mps
+Tried converting velocity to mps units. Car loses stability, starts taking a zig-zag path and finally crashes. Hence, unit conversion is excluded.
+
+---
 
 ---
 
