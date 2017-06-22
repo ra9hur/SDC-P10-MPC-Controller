@@ -9,7 +9,7 @@ Source: [iopscience](http://cdn.iopscience.com/images/0964-1726/21/5/055018/Full
 ![mpc2](https://user-images.githubusercontent.com/17127066/27439584-eb9cc7bc-5785-11e7-88da-2aad8e1eb509.png)
 Source: [wikipedia](https://en.wikipedia.org/wiki/Model_predictive_control)
 
-Model process controllers primarily solves an optimization problem and mainly has three parts 
+Model process controllers primarily solves an optimization problem and mainly has three parts:
 
 - cost/objective function
 - design variables
@@ -27,7 +27,7 @@ Design variables are the vehicle states [x, y, psi, v, cte, epsi] and control va
 
      N * 6 + (N-1) * 2 = 20 * 6 + (20-1) * 2 = 158 variables.
 
-The optimizer does not know about the restrictions on these variables. A few of those restrictions are:
+The optimizer does not recognize restrictions on these variables. A few of those restrictions are:
 
 - Easiest way to minimize the cross-track error is for the vehicle to "teleport" from it's starting position to be directly on the track and just stay there. The optimizer doesn't know that the car cannot teleport from the current position to the target or that it's velocity cannot instantaneously increase to the desired value.
 - Car cannot take arbitrary path. It has to move on the left/right side of the road depending on country rules.
@@ -46,13 +46,16 @@ This ensures that the dynamics of the system are satisfied between the two time-
       cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt)) = 0
       epsi1 - ((psi0 - psides0) + v0 * delta0 * dt / Lf) = 0
 
-There are other constraints that are inequality constraints and also a special form of inequality constraint -- bounds. These are used to limit the range of values that the optimizer can search (by varying the design variables) to find the optimum. Refer [discussion forum](https://discussions.udacity.com/t/model-constraints-vs-state-update-equations/250569) for details.
+There are other constraints that are inequality constraints and also a special form of inequality constraint -- bounds. These are used to limit the range of values that the optimizer can search (by varying the design variables) to find the optimum. 
+
+Refer [discussion forum](https://discussions.udacity.com/t/model-constraints-vs-state-update-equations/250569) for details.
 
 ---
 
 ### PID Vs MPC
 
 The PID approach would be analogous to a driver negotiating the road by continuously adjusting the input parameters (steering and throttle), correcting deviation from the reference trajectory, proceeding along as the new corners or obstacles appear in front. 
+
 The MPC strategy would be analogous to studying the whole road, selecting the driving strategy before the departure and re-assessing/selecting the driving strategy at every time-step. Note that even the MPC approach does not guarantee 100% success as the strategy might have to be adjusted to changing conditions like rain, other road users, and so on.
 
 Source: [openi.nlm.nih.gov](https://openi.nlm.nih.gov/detailedresult.php?img=PMC2784347_cc8023-1&req=4)
@@ -63,16 +66,20 @@ Source: [openi.nlm.nih.gov](https://openi.nlm.nih.gov/detailedresult.php?img=PMC
 
 ### Way-points transformation
 The simulator provides a feed of values (in car coordinate system) containing the position of the car, its speed and heading direction. Additionally it provides waypoints (in map or global coordinate system) along a reference trajectory that the car is to follow. 
+
 The coordinates of waypoints in vehicle coordinates are obtained by first shifting the origin to the current position of the vehicle and then, a 2D rotation to align with x-axis as the heading direction. This transformation results in vehicle's co-ordinates and yaw angle as zero. Thus, state of the car in the vehicle cordinate system is, state = [0, 0, 0, v, cte, epsi]
 
 ### Latency
 There will be a delay as actuator command propagates through the car system. Realistic delay might be on the order of 100 milliseconds.
+
 This problem is solved by running a simulation using the vehicle model starting from the current state for the duration of the latency (100 milliseconds). Resulting state from the simulation is the new initial state for MPC. Thus optimal trajectory is computed starting from the time after the latency period. Advantage is that the dynamics during the latency period is still calculated according to the vehicle model.
 
 ### Prediction Horizon
 Optimization problem is formulated over a finite window of time starting from the current instant. Horizon keeps moving at every time-step. [t, t + T] to [t + dt, t + T + dt]
+
 If N is the number of time-steps, dt is the duration of each time-step, prediction horizon is calculated as N * dt.
 Short prediction horizons lead to more responsive controlers, but are less accurate and can suffer from instabilities when chosen too short. Long prediction horizons generally lead to smoother controls.
+
 After a few trials, chose N = 20 and dt = 0.2
 
 ### Adjust weights on cost terms
